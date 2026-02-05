@@ -9,8 +9,9 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_base_url: str = "https://api.openai.com/v1"
     encryption_key: str = ""
-    validation_batch_size: int = 10
-    validation_context_turns: int = 3
+    validation_batch_size: int = 50
+    validation_context_turns: int = 2
+    validation_max_items_per_request: int = 100
 
 
 @lru_cache

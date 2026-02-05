@@ -47,6 +47,7 @@ from app.models import (
 from app.services.prompt_hub_service import get_system_behavior_reference
 
 VALIDATE_BATCH_PROMPT_KEY = "validate_batch"
+ITEMS_PLACEHOLDER = "Input list (JSON array): {items_json}"
 
 
 def _get_prompt_body_from_db(session: Session) -> str | None:
@@ -61,25 +62,33 @@ def _response_payload(mr: MessageResponse) -> str | dict:
     return mr.response_text or ""
 
 
-def _build_prompt_body(
+def _build_system_content(
     batch_prompt_template: str,
-    criterion: ValidationCriterion,
     system_behavior_section: str,
-    items_json: str,
+    criterion: ValidationCriterion,
 ) -> str:
+    """Match validation_service: system message has no items (items go in user message)."""
     additional_info_section = ""
     if getattr(criterion, "additional_info", None) and (criterion.additional_info or "").strip():
         additional_info_section = f"Additional context for this criterion: {criterion.additional_info.strip()}\n\n"
     applies_to_all_instruction = ""
     if not getattr(criterion, "applies_to_all", True):
         applies_to_all_instruction = 'If this criterion does not apply to an item (e.g. no goal string in the query), output passed: true, score: 100, reason: "N/A - criterion not applicable".\n\n'
-    prompt_body = batch_prompt_template.replace("{system_behavior}", system_behavior_section)
-    prompt_body = prompt_body.replace("{criterion_name}", criterion.name)
-    prompt_body = prompt_body.replace("{criterion_description}", criterion.description or "")
-    prompt_body = prompt_body.replace("{additional_info}", additional_info_section)
-    prompt_body = prompt_body.replace("{applies_to_all_instruction}", applies_to_all_instruction)
-    prompt_body = prompt_body.replace("{items_json}", items_json)
-    return prompt_body
+    full = (
+        batch_prompt_template.replace("{system_behavior}", system_behavior_section)
+        .replace("{criterion_name}", criterion.name)
+        .replace("{criterion_description}", criterion.description or "")
+        .replace("{additional_info}", additional_info_section)
+        .replace("{applies_to_all_instruction}", applies_to_all_instruction)
+    )
+    if ITEMS_PLACEHOLDER in full:
+        full = full.replace(
+            ITEMS_PLACEHOLDER,
+            "The items will be provided in the next message. Output a JSON array with one object per item, in the same order.",
+        )
+    else:
+        full = full.replace("{items_json}", "The items will be provided in the next message.")
+    return full.strip()
 
 
 def get_criteria_for_run(session: Session, run: Run) -> list[ValidationCriterion]:
@@ -103,8 +112,8 @@ def get_criteria_for_run(session: Session, run: Run) -> list[ValidationCriterion
 
 def estimate_validation_tokens(session: Session, run_id: int | None = None) -> list[dict]:
     settings = get_settings()
-    batch_size = settings.validation_batch_size
     context_turns = settings.validation_context_turns
+    max_items_per_request = settings.validation_max_items_per_request
 
     batch_prompt_template = _get_prompt_body_from_db(session)
     if not batch_prompt_template:
@@ -165,11 +174,14 @@ def estimate_validation_tokens(session: Session, run_id: int | None = None) -> l
         batch_details = []
 
         for criterion in criteria:
-            for batch_start in range(0, len(pairs), batch_size):
-                batch_pairs = pairs[batch_start : batch_start + batch_size]
+            system_content = _build_system_content(
+                batch_prompt_template, system_behavior_section, criterion
+            )
+            for chunk_start in range(0, len(pairs), max_items_per_request):
+                chunk_pairs = pairs[chunk_start : chunk_start + max_items_per_request]
                 items = []
-                for i, (mr, q) in enumerate(batch_pairs):
-                    idx = batch_start + i
+                for i, (mr, q) in enumerate(chunk_pairs):
+                    idx = chunk_start + i
                     prev_start = max(0, idx - context_turns)
                     previous_turns = [
                         {"query": pairs[j][1].query_text or "", "response": _response_payload(pairs[j][0])}
@@ -182,23 +194,17 @@ def estimate_validation_tokens(session: Session, run_id: int | None = None) -> l
                         "response": _response_payload(mr),
                     })
                 items_json = json.dumps(items, ensure_ascii=False)
-                prompt_body = _build_prompt_body(
-                    batch_prompt_template,
-                    criterion,
-                    system_behavior_section,
-                    items_json,
-                )
-                input_tokens = _count_tokens(prompt_body)
-                # Rough output: JSON array with one object per item (~80–120 tokens per item)
+                user_content = f"Input list (JSON array):\n{items_json}\n\nReturn only the JSON array, no markdown or extra text."
+                input_tokens = _count_tokens(system_content) + _count_tokens(user_content)
                 est_output_per_item = 100
-                est_output_tokens = len(batch_pairs) * est_output_per_item
+                est_output_tokens = len(chunk_pairs) * est_output_per_item
 
                 run_input_tokens += input_tokens
                 run_est_output_tokens += est_output_tokens
                 batch_details.append({
                     "criterion_key": criterion.key,
-                    "batch_start": batch_start,
-                    "batch_size": len(batch_pairs),
+                    "batch_start": chunk_start,
+                    "batch_size": len(chunk_pairs),
                     "input_tokens": input_tokens,
                     "est_output_tokens": est_output_tokens,
                 })

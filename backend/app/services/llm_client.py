@@ -9,7 +9,7 @@ def get_llm_client() -> AsyncOpenAI:
     return AsyncOpenAI(api_key=s.llm_api_key, base_url=s.llm_base_url)
 
 
-async def chat_completion(system: str | None, user: str, model: str = "gpt-4.1") -> str:
+async def chat_completion(system: str | None, user: str, model: str = "gpt-5-mini") -> str:
     client = get_llm_client()
     messages = []
     if system:
