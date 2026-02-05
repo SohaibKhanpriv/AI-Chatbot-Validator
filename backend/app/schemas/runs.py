@@ -10,6 +10,7 @@ class RunCreate(BaseModel):
     auth_token: str
     new_thread_per_query: bool = True
     query_limit: Optional[int] = None  # None = all queries; N = run first N only (quick run)
+    criterion_keys: Optional[list[str]] = None  # If set, only these validation criteria for this run; else use all active
 
     @field_validator("query_limit")
     @classmethod

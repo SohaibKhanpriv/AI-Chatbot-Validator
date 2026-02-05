@@ -39,7 +39,7 @@ export default function DeepAnalysisTable({ data, runId }: { data: DeepAnalysis;
       const next = { ...prev[key] };
       for (const [k, val] of Object.entries(patch)) {
         if (val === undefined) delete next[k as keyof LocalOverride];
-        else next[k as keyof LocalOverride] = val;
+        else (next as Record<string, unknown>)[k] = val;
       }
       const out = { ...prev };
       if (Object.keys(next).length === 0) delete out[key];

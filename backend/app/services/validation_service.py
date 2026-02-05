@@ -41,6 +41,19 @@ async def get_active_criteria(session: AsyncSession) -> list[ValidationCriterion
     return list(result.scalars().all())
 
 
+async def get_criteria_by_keys(session: AsyncSession, keys: list[str]) -> list[ValidationCriterion]:
+    if not keys:
+        return []
+    result = await session.execute(
+        select(ValidationCriterion)
+        .where(ValidationCriterion.key.in_(keys))
+        .order_by(ValidationCriterion.sort_order)
+    )
+    # Preserve order of keys as given (first occurrence)
+    by_key = {c.key: c for c in result.scalars().all()}
+    return [by_key[k] for k in keys if k in by_key]
+
+
 def _parse_batch_response(content: str) -> list[dict]:
     content = content.strip()
     if content.startswith("```"):
@@ -67,7 +80,12 @@ async def validate_run(session: AsyncSession, run_id: int) -> None:
     pairs = await get_message_responses_with_queries(session, run_id)
     if not pairs:
         return
-    criteria = await get_active_criteria(session)
+    config = run.config if isinstance(run.config, dict) else {}
+    criterion_keys = config.get("criterion_keys")
+    if criterion_keys is not None:
+        criteria = await get_criteria_by_keys(session, criterion_keys)
+    else:
+        criteria = await get_active_criteria(session)
     if not criteria:
         return
 

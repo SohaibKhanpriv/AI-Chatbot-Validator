@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import ExportReportButton from "@/components/ExportReportButton";
 
 export default async function RunReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,6 +25,9 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
         >
           Deep analysis
         </Link>
+        {report.responses_count > 0 && (
+          <ExportReportButton runId={runId} disabled={false} />
+        )}
         <h1 className="text-2xl font-bold text-[var(--neural-primary)]">Run report</h1>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -7,6 +7,7 @@ const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/datasets", label: "Datasets" },
   { href: "/runs", label: "Runs" },
+  { href: "/character-timeline", label: "Character timeline" },
   { href: "/prompt-hub", label: "Prompt Hub" },
   { href: "/criteria", label: "Validation Criteria" },
 ];

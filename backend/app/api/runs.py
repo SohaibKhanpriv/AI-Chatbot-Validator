@@ -26,7 +26,11 @@ async def create_run(
     total = len(all_queries)
     if body.query_limit is not None and body.query_limit >= 1:
         total = min(total, body.query_limit)
-    config = {"query_limit": body.query_limit} if body.query_limit is not None else None
+    config = {}
+    if body.query_limit is not None:
+        config["query_limit"] = body.query_limit
+    if body.criterion_keys is not None:
+        config["criterion_keys"] = body.criterion_keys
     run = Run(
         name=body.name,
         dataset_id=body.dataset_id,
@@ -36,7 +40,7 @@ async def create_run(
         total_queries=total,
         processed_count=0,
         status="pending",
-        config=config,
+        config=config if config else None,
     )
     db.add(run)
     await db.commit()

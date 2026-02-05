@@ -62,13 +62,19 @@ async def process_run(session: AsyncSession, run_id: int) -> None:
 
     for i, q in enumerate(queries):
         try:
-            response_text, last_chunk = await stream_myla_message(
+            response_text, last_chunk, stream_chunks = await stream_myla_message(
                 api_url=api_url,
                 auth_token=auth_token,
                 message=q.query_text,
                 new_thread=new_thread,
             )
-            raw_chunks = {"last_chunk": last_chunk} if last_chunk else None
+            raw_chunks = None
+            if last_chunk or stream_chunks:
+                raw_chunks = {}
+                if last_chunk is not None:
+                    raw_chunks["last_chunk"] = last_chunk
+                if stream_chunks:
+                    raw_chunks["stream_chunks"] = stream_chunks
             mr = MessageResponse(
                 run_id=run_id,
                 query_id=q.id,

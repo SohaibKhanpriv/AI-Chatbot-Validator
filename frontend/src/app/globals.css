@@ -59,3 +59,33 @@ body {
   background: linear-gradient(180deg, var(--neural-primary), var(--neural-accent));
   border-radius: 4px;
 }
+
+/* Conversation graph – ReactFlow overrides, dark glassmorphism */
+.conversation-graph .react-flow__background {
+  background: transparent;
+}
+.conversation-graph .react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
+}
+.conversation-graph .react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: graph-edge-dash 0.5s linear infinite;
+}
+@keyframes graph-edge-dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+.conversation-graph .react-flow__controls {
+  border-radius: 0.75rem;
+}
+.conversation-graph .react-flow__minimap {
+  border-radius: 0.75rem;
+}
+.conversation-graph .react-flow__node {
+  cursor: pointer;
+}
+.conversation-graph .react-flow__node:focus {
+  outline: none;
+}

@@ -1,11 +1,27 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+function getApiUrl(path: string): string {
+  const base = API_BASE.replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${p}`;
+}
+
 export async function fetcher<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
-  });
-  if (!res.ok) throw new Error(await res.text().catch(() => res.statusText));
+  const url = getApiUrl(path);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...options?.headers },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`API request failed (${url}): ${msg}`);
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(text || `HTTP ${res.status}`);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -108,6 +124,20 @@ export type DeepAnalysis = {
   rows: QueryValidationRow[];
 };
 
+export type TimelineChunk = { order: number; avatar: string };
+export type QueryTimelineItem = {
+  query_index: number;
+  query_text: string;
+  message_response_id: number;
+  response_text?: string | null;
+  chunks: TimelineChunk[];
+};
+export type CharacterTimeline = {
+  run_id: number;
+  run_name: string;
+  items: QueryTimelineItem[];
+};
+
 export const api = {
   datasets: {
     list: () => fetcher<Dataset[]>("/datasets"),
@@ -150,6 +180,7 @@ export const api = {
       auth_token: string;
       new_thread_per_query?: boolean;
       query_limit?: number | null;
+      criterion_keys?: string[] | null;
     }) => fetcher<Run>("/runs", { method: "POST", body: JSON.stringify(body) }),
     delete: (id: number) => fetcher<{ ok: boolean }>(`/runs/${id}`, { method: "DELETE" }),
   },
@@ -177,6 +208,8 @@ export const api = {
   reports: {
     get: (runId: number) => fetcher<RunReport>(`/runs/${runId}/report`),
     getDeepAnalysis: (runId: number) => fetcher<DeepAnalysis>(`/runs/${runId}/analysis`),
+    getCharacterTimeline: (runId: number) =>
+      fetcher<CharacterTimeline>(`/runs/${runId}/character-timeline`),
     patchValidationOverrides: (runId: number, updates: ValidationOverrideUpdate[]) =>
       fetcher<{ updated: number }>(`/runs/${runId}/validations`, {
         method: "PATCH",

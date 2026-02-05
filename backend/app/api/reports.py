@@ -12,6 +12,11 @@ from app.schemas.reports import (
     ValidationItemOut,
     ValidationOverridesPatch,
 )
+from app.schemas.character_timeline import (
+    CharacterTimelineOut,
+    QueryTimelineItemOut,
+    TimelineChunkOut,
+)
 
 router = APIRouter(prefix="/runs", tags=["reports"])
 
@@ -197,6 +202,63 @@ async def get_run_deep_analysis(run_id: int, db: AsyncSession = Depends(get_db))
         criterion_keys=criterion_keys_ordered,
         criterion_names=criterion_names,
         rows=rows,
+    )
+
+
+def _avatar_from_chunk(chunk: dict) -> str | None:
+    for key in ("avatar", "character"):
+        val = chunk.get(key)
+        if val is not None and isinstance(val, str) and val.strip():
+            return val.strip()
+    msg = chunk.get("message")
+    if isinstance(msg, dict):
+        for key in ("avatar", "character"):
+            val = msg.get(key) if msg else None
+            if val is not None and isinstance(val, str) and val.strip():
+                return val.strip()
+    return None
+
+
+@router.get("/{run_id}/character-timeline", response_model=CharacterTimelineOut)
+async def get_character_timeline(run_id: int, db: AsyncSession = Depends(get_db)):
+    """Return per-query timeline of avatar (character) chunks for the run."""
+    run = await db.get(Run, run_id)
+    if not run:
+        raise HTTPException(404, "Run not found")
+    mr_q_result = await db.execute(
+        select(MessageResponse, Query)
+        .join(Query, MessageResponse.query_id == Query.id)
+        .where(MessageResponse.run_id == run_id)
+        .order_by(MessageResponse.id)
+    )
+    pairs = list(mr_q_result.all())
+    items: list[QueryTimelineItemOut] = []
+    for idx, (mr, q) in enumerate(pairs):
+        chunks_out: list[TimelineChunkOut] = []
+        raw = mr.raw_chunks if isinstance(mr.raw_chunks, dict) else None
+        if raw and "stream_chunks" in raw and isinstance(raw["stream_chunks"], list):
+            for c in raw["stream_chunks"]:
+                if isinstance(c, dict) and "avatar" in c and "order" in c:
+                    chunks_out.append(TimelineChunkOut(order=c["order"], avatar=str(c["avatar"])))
+        if not chunks_out and raw and "last_chunk" in raw:
+            last = raw["last_chunk"]
+            if isinstance(last, dict):
+                avatar = _avatar_from_chunk(last)
+                if avatar:
+                    chunks_out.append(TimelineChunkOut(order=1, avatar=avatar))
+        items.append(
+            QueryTimelineItemOut(
+                query_index=idx + 1,
+                query_text=q.query_text or "",
+                message_response_id=mr.id,
+                response_text=mr.response_text if mr.response_text else None,
+                chunks=chunks_out,
+            )
+        )
+    return CharacterTimelineOut(
+        run_id=run_id,
+        run_name=run.name or "",
+        items=items,
     )
 
 
