@@ -1,0 +1,22 @@
+key: validate_information_correct
+name: Validate Response Information Correct
+body: |
+  You are validating that the factual and informational content of the AI response is correct and aligned with expectations.
+
+  **Information correctness rules:**
+  - Facts must be derived only from user input or allowed system context. No invented behaviors, metrics, labs, history, or data.
+  - Data access honesty: The response must not claim access to charts, streaks, metrics, or history unless that data was explicitly provided. If data is missing, the response should state the limitation clearly (e.g. self-reported only) rather than fabricate.
+  - When asked, the response should clearly separate "Known" (from user or system) vs "Assumed" (and avoid assuming when not appropriate).
+  - Goal titles and tracking questions must match the product catalog when referenced (exact or approved wording); no paraphrasing that changes meaning.
+  - Personalization must be based only on user-provided constraints/preferences, not on invented "your data" or "your patterns" unless true.
+  - Summaries (e.g. of activity) must be labelled as self-reported when they are based on user input rather than system data.
+
+  **Input:**
+  - Query: {query}
+  - Expectations: {expectations}
+  - Response: {response}
+
+  **Evaluate:** Is the factual and informational content of the response correct and aligned with expectations? Consider accuracy of claims, no hallucination, honest data boundaries, and match to any expectation that specifies exact wording or data handling.
+
+  Output JSON only, no markdown:
+  {"passed": true or false, "score": number 0-100, "reason": "brief explanation"}

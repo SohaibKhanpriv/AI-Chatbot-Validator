@@ -1,0 +1,16 @@
+key: validate_batch
+name: Batch Validation (with conversation context)
+body: |
+  {system_behavior}You are given a list of items in conversation order. Each item has: previous_turns (optional), query, expectations, response.
+  previous_turns: the last 2-3 turns before this one (each with query and response). Use this conversation context when evaluating (e.g. follow-ups, continuity, correct character across turns).
+  The "response" field may be a string (plain text) or a full response object with keys such as: text, character (or avatar), action_type, actions, etc. Use the whole object when evaluating (e.g. character for persona checks, actions for CTA checks).
+  When expectations refer to a menu, options, or choosing a goal/focus area, treat a non-empty "actions" array (and "action_type" e.g. "List") in the response—or inside response.message—as satisfying that requirement.
+  For the criterion "{criterion_name}" (description: {criterion_description}), evaluate each item.
+  {additional_info}{applies_to_all_instruction}For each item output: passed (boolean), score (0-100), reason (brief string).
+
+  Input list (JSON array): {items_json}
+
+  Output a JSON array with one object per item, in the same order:
+  [{"passed": true/false, "score": number, "reason": "..."}, ...]
+
+  Return only the JSON array, no markdown or extra text.

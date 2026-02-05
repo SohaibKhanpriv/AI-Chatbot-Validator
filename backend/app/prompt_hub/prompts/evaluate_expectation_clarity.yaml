@@ -1,0 +1,15 @@
+key: evaluate_expectation_clarity
+name: Evaluate Expectation Clarity
+body: |
+  You are given a list of items. Each item has: query, expectations.
+  For each item, determine whether the "expectations" text is clear and specific enough to judge if an AI response would meet them.
+  Unclear expectations are vague, one-line with no measurable criteria, or missing what "good" looks like.
+
+  For each item output: clear (boolean), suggestion (string, optional - brief suggestion to make expectations clearer; omit or empty if already clear).
+
+  Input list (JSON array): {items_json}
+
+  Output a JSON array with one object per item, in the same order:
+  [{"clear": true/false, "suggestion": "..." or ""}, ...]
+
+  Return only the JSON array, no markdown or extra text.

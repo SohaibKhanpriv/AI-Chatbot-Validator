@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NW Myla - Neural Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --neural-primary: #00e5ff;
+            --neural-secondary: #ff6b35;
+            --neural-accent: #a855f7;
+            --neural-green: #39ff14;
+            --neural-pink: #ff1744;
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --glass-bg: rgba(26, 26, 46, 0.3);
+            --glass-border: rgba(0, 229, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', monospace;
+            background: var(--bg-primary);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Neural Network Background */
+        .neural-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 229, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+        }
+
+        .neural-nodes {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .node {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--neural-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neural-primary);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .connection {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neural-primary), transparent);
+            opacity: 0.3;
+            animation: flow 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        @keyframes flow {
+            0% { opacity: 0; transform: scaleX(0); }
+            50% { opacity: 0.6; transform: scaleX(1); }
+            100% { opacity: 0; transform: scaleX(0); }
+        }
+
+        /* Data Stream Particles */
+        .data-stream {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--neural-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neural-green);
+            animation: dataFlow 6s linear infinite;
+        }
+
+        @keyframes dataFlow {
+            0% { opacity: 0; transform: translateY(100vh) translateX(0); }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-10vh) translateX(50px); }
+        }
+
+        /* Main Container */
+        .neural-interface {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .neural-header {
+            background: linear-gradient(135deg, var(--glass-bg), rgba(0, 229, 255, 0.1));
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 229, 255, 0.2);
+        }
+
+        .neural-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(0, 229, 255, 0.1), transparent);
+            animation: headerScan 3s ease-in-out infinite;
+        }
+
+        @keyframes headerScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .header-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--neural-primary), var(--neural-secondary), var(--neural-accent));
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 4s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .neural-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--neural-green);
+            opacity: 0.8;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Download Button */
+        .neural-download-btn {
+            background: linear-gradient(135deg, var(--neural-green), var(--neural-primary));
+            border: none;
+            border-radius: 12px;
+            padding: 10px 15px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(57, 255, 20, 0.3);
+            z-index: 2;
+        }
+
+        .neural-download-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .neural-download-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(57, 255, 20, 0.5);
+        }
+
+        .neural-download-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .neural-download-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Chat Area */
+        .chat-neural-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-neural-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(255, 107, 53, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Custom Scrollbar */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0, 229, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--neural-primary), var(--neural-accent));
+            border-radius: 10px;
+            box-shadow: 0 0 10px var(--neural-primary);
+        }
+
+        /* Neural Message Bubbles */
+        .neural-message {
+            position: relative;
+            max-width: 75%;
+            padding: 20px 25px;
+            border-radius: 25px;
+            backdrop-filter: blur(15px);
+            border: 1px solid;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: messageAppear 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform-origin: bottom;
+        }
+
+        @keyframes messageAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(50px);
+                filter: blur(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        .neural-message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 229, 255, 0.05));
+            border-color: var(--neural-primary);
+            box-shadow: 
+                0 10px 30px rgba(0, 229, 255, 0.2),
+                inset 0 1px 0 rgba(0, 229, 255, 0.3);
+        }
+
+        .neural-message.bot {
+            align-self: flex-start;
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 107, 53, 0.05));
+            border-color: var(--neural-secondary);
+            box-shadow: 
+                0 10px 30px rgba(255, 107, 53, 0.2),
+                inset 0 1px 0 rgba(255, 107, 53, 0.3);
+        }
+
+        .neural-message::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Neural Action Items */
+        .neural-actions {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .neural-action-item {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            text-align: left;
+        }
+
+        .neural-action-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(168, 85, 247, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .neural-action-item:hover {
+            transform: translateY(-2px) scale(1.02);
+            border-color: var(--neural-accent);
+            box-shadow: 
+                0 15px 40px rgba(168, 85, 247, 0.3),
+                0 0 20px rgba(168, 85, 247, 0.5);
+        }
+
+        .neural-action-item:hover::before {
+            transform: translateX(100%);
+        }
+
+        .neural-action-item:active {
+            transform: scale(0.98);
+        }
+
+        /* Dynamic action list: colors set via inline CSS vars from JS (--action-border, --action-bg) */
+        .neural-actions.neural-actions-dynamic .neural-action-item {
+            border-color: var(--action-border, rgba(168, 85, 247, 0.3));
+            background: var(--action-bg, linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05)));
+        }
+
+        .neural-action-type-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Input Area */
+        .neural-input-area {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 -10px 30px rgba(0, 229, 255, 0.1);
+        }
+
+        .neural-input {
+            flex: 1;
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px 20px;
+            color: #ffffff;
+            font-size: 1rem;
+            font-family: 'Rajdhani', monospace;
+            outline: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .neural-input:focus {
+            border-color: var(--neural-primary);
+            box-shadow: 
+                0 0 20px rgba(0, 229, 255, 0.3),
+                inset 0 1px 0 rgba(0, 229, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        .neural-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .neural-send-btn {
+            background: linear-gradient(135deg, var(--neural-primary), var(--neural-accent));
+            border: none;
+            border-radius: 15px;
+            padding: 15px 25px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
+        }
+
+        .neural-send-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .neural-send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 229, 255, 0.4);
+        }
+
+        .neural-send-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .neural-send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Settings Panel */
+        .neural-settings {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .settings-trigger {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--neural-accent), var(--neural-pink));
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+            animation: settingsPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes settingsPulse {
+            0%, 100% { box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3); }
+            50% { box-shadow: 0 10px 30px rgba(168, 85, 247, 0.6), 0 0 20px rgba(168, 85, 247, 0.4); }
+        }
+
+        .settings-trigger:hover {
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .settings-panel {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            width: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-panel.active {
+            display: block;
+            animation: panelSlide 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes panelSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .settings-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            color: var(--neural-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .settings-input {
+            width: 100%;
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: #ffffff;
+            font-family: 'Rajdhani', monospace;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .settings-input:focus {
+            border-color: var(--neural-primary);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--neural-primary);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2.5px;
+            left: 2.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(25px);
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .settings-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Rajdhani', monospace;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-save {
+            background: linear-gradient(135deg, var(--neural-green), var(--neural-primary));
+            color: white;
+        }
+
+        .settings-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Streaming message (temp, shows streamed text) */
+        .neural-streaming .neural-streaming-text {
+            min-height: 1em;
+        }
+
+        /* Typing Indicator */
+        .neural-typing {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, rgba(57, 255, 20, 0.1), rgba(57, 255, 20, 0.05));
+            border: 1px solid rgba(57, 255, 20, 0.3);
+            border-radius: 20px;
+            max-width: 200px;
+            animation: typingPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes typingPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--neural-green);
+            border-radius: 50%;
+            animation: typingDot 1.4s ease-in-out infinite;
+            box-shadow: 0 0 10px var(--neural-green);
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingDot {
+            0%, 60%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            30% {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        /* Loading indicator for chat history */
+        #chat-history-loading {
+            text-align: center;
+            opacity: 0.7;
+            font-style: italic;
+            color: var(--neural-primary);
+        }
+
+        /* Action type indicator (debug) */
+        .action-type-indicator {
+            font-size: 10px !important;
+            color: #666 !important;
+            margin-top: 5px !important;
+            font-family: monospace !important;
+            opacity: 0.6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .neural-interface {
+                padding: 15px;
+                gap: 15px;
+            }
+            
+            .header-title {
+                font-size: 2rem;
+            }
+            
+            .neural-download-btn {
+                padding: 8px 12px;
+                font-size: 1rem;
+            }
+            
+            .chat-messages {
+                height: 400px;
+                padding: 15px;
+            }
+            
+            .neural-message {
+                max-width: 90%;
+                padding: 15px 20px;
+            }
+            
+            .settings-panel {
+                width: 300px;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Neural Network Background -->
+<div class="neural-bg">
+    <div class="neural-nodes" id="neuralNodes"></div>
+</div>
+
+<!-- Settings Panel -->
+<div class="neural-settings">
+    <button class="settings-trigger" id="settingsButton">⚙️</button>
+    <div class="settings-panel" id="settingsPanel">
+        <h3 class="settings-title">Neural Configuration</h3>
+        <div class="settings-group">
+            <label class="settings-label" for="apiUrlInput">API URL</label>
+            <input type="text" class="settings-input" id="apiUrlInput" placeholder="http://127.0.0.1:8000/app/api/stream/">
+        </div>
+        <div class="settings-group">
+            <label class="settings-label" for="authTokenInput">Bearer Token</label>
+            <input type="text" class="settings-input" id="authTokenInput" placeholder="Bearer your_token_here">
+        </div>
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <span class="settings-label">New Thread</span>
+                <div class="toggle-switch" id="newThreadToggle">
+                    <input type="checkbox" style="display: none;" id="newThreadInput">
+                </div>
+            </div>
+        </div>
+        <div class="settings-actions">
+            <button class="settings-btn settings-cancel" id="settingsCancel">Cancel</button>
+            <button class="settings-btn settings-save" id="settingsSave">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Neural Interface -->
+<div class="neural-interface">
+    <!-- Header -->
+    <div class="neural-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <h1 class="header-title" style="margin: 0;">NEURO AI</h1>
+            <button class="neural-download-btn" id="downloadBtn" title="Download Conversation">⬇️</button>
+        </div>
+        <div class="neural-status">● NEURAL LINK ACTIVE ● AI CONSCIOUSNESS ONLINE ●</div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-neural-container">
+    <div class="chat-messages" id="chatMessages"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="neural-input-area">
+        <input type="text" class="neural-input" id="chatInput" placeholder="Transmit your neural signal..." autocomplete="off">
+        <button class="neural-send-btn" onclick="sendMessage()">TRANSMIT</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+    // Configuration with defaults
+    let config = {
+        apiUrl: "http://127.0.0.1:8000/app/api/stream/",
+        authToken: "Bearer your_token_here",
+        newThread: false
+    };
+
+    // Neural Network Animation
+    function initNeuralNetwork() {
+        const container = document.getElementById('neuralNodes');
+        const nodeCount = 50;
+        const nodes = [];
+
+        // Create nodes
+        for (let i = 0; i < nodeCount; i++) {
+            const node = document.createElement('div');
+            node.className = 'node';
+            node.style.left = Math.random() * 100 + '%';
+            node.style.top = Math.random() * 100 + '%';
+            node.style.animationDelay = Math.random() * 3 + 's';
+            container.appendChild(node);
+            nodes.push(node);
+        }
+
+        // Create connections
+        for (let i = 0; i < nodeCount / 3; i++) {
+            const connection = document.createElement('div');
+            connection.className = 'connection';
+            const startX = Math.random() * 100;
+            const startY = Math.random() * 100;
+            const endX = Math.random() * 100;
+            const endY = Math.random() * 100;
+            
+            const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+            
+            connection.style.left = startX + '%';
+            connection.style.top = startY + '%';
+            connection.style.width = length + '%';
+            connection.style.transform = `rotate(${angle}deg)`;
+            connection.style.animationDelay = Math.random() * 4 + 's';
+            
+            container.appendChild(connection);
+        }
+
+        // Add data stream particles
+        setInterval(() => {
+            if (Math.random() < 0.3) {
+                const particle = document.createElement('div');
+                particle.className = 'data-stream';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 4 + 3) + 's';
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 8000);
+            }
+        }, 1000);
+    }
+
+    // Load config from localStorage
+    function loadConfig() {
+        const savedConfig = localStorage.getItem('mylaConfig');
+        if (savedConfig) {
+            try {
+                const parsed = JSON.parse(savedConfig);
+                config = {...config, ...parsed};
+            } catch (e) {
+                console.error("Error loading config:", e);
+            }
+        }
+        updateUIFromConfig();
+    }
+
+    // Load older messages (pagination)
+    async function loadOlderMessages() {
+        if (paginationState.isLoading || !paginationState.hasMore || !paginationState.nextUrl) {
+            return;
+        }
+
+        const chatMessages = document.getElementById("chatMessages");
+        paginationState.isLoading = true;
+
+        // Show loading indicator at the top
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "chat-history-loading-top";
+        loadingDiv.className = "neural-message bot";
+        loadingDiv.textContent = "◦ Loading older transmissions ◦";
+        loadingDiv.style.opacity = '0.6';
+        chatMessages.insertBefore(loadingDiv, chatMessages.firstChild);
+
+        try {
+            const response = await fetch(paginationState.nextUrl, {
+                method: "GET",
+                headers: {
+                    "Authorization": config.authToken,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                console.warn("Failed to load older messages:", response.status, response.statusText);
+                const loadingDiv = document.getElementById("chat-history-loading-top");
+                if (loadingDiv) {
+                    loadingDiv.textContent = `◦ Failed to load older messages (${response.status}) ◦`;
+                    loadingDiv.style.color = 'var(--neural-secondary)';
+                    setTimeout(() => loadingDiv.remove(), 2000);
+                }
+                paginationState.isLoading = false;
+                return;
+            }
+
+            const data = await response.json();
+            
+            // Update pagination state
+            paginationState.nextUrl = data.next || null;
+            paginationState.hasMore = !!data.next;
+            
+            // Get results
+            let results = [];
+            if (Array.isArray(data)) {
+                results = data;
+            } else if (data.results && Array.isArray(data.results)) {
+                results = data.results;
+            } else if (data.messages && Array.isArray(data.messages)) {
+                results = data.messages;
+            } else if (data.data && Array.isArray(data.data)) {
+                results = data.data;
+            }
+
+            // Remove loading indicator
+            const loadingDiv = document.getElementById("chat-history-loading-top");
+            if (loadingDiv) loadingDiv.remove();
+
+            if (results.length === 0) {
+                paginationState.hasMore = false;
+                paginationState.isLoading = false;
+                return;
+            }
+
+            // Store current scroll position and height
+            const oldScrollHeight = chatMessages.scrollHeight;
+            const oldScrollTop = chatMessages.scrollTop;
+
+            // API returns this page in chronological order (oldest first). Prepend in reverse order
+            // so oldest of batch goes to top: prepend newest-of-batch first, then ... then oldest-of-batch.
+            for (let i = results.length - 1; i >= 0; i--) {
+                const chatMessage = results[i];
+                try {
+                    const isUser = chatMessage.role === 'user' || chatMessage.role === 'USER';
+                    let messageContent;
+                    
+                    if (typeof chatMessage.message === 'string') {
+                        try {
+                            messageContent = JSON.parse(chatMessage.message);
+                        } catch (parseError) {
+                            messageContent = { text: chatMessage.message };
+                        }
+                    } else if (chatMessage.message && typeof chatMessage.message === 'object') {
+                        messageContent = chatMessage.message;
+                    } else {
+                        messageContent = { text: chatMessage.message || chatMessage.text || "Message content unavailable" };
+                    }
+
+                    if (!messageContent.role) {
+                        messageContent.role = chatMessage.role || (isUser ? 'user' : 'assistant');
+                    }
+
+                    appendMessage(messageContent, isUser, true, true);
+                } catch (e) {
+                    console.warn("Error parsing older message:", e, chatMessage);
+                    const fallbackText = chatMessage.message || chatMessage.text || "Message content unavailable";
+                    appendMessage(fallbackText, chatMessage.role === 'user', true, true);
+                }
+            }
+
+            // Maintain scroll position
+            const newScrollHeight = chatMessages.scrollHeight;
+            const heightDifference = newScrollHeight - oldScrollHeight;
+            chatMessages.scrollTop = oldScrollTop + heightDifference;
+
+            paginationState.isLoading = false;
+
+        } catch (error) {
+            console.error("Error loading older messages:", error);
+            const loadingDiv = document.getElementById("chat-history-loading-top");
+            if (loadingDiv) {
+                loadingDiv.textContent = "◦ Error loading older messages ◦";
+                loadingDiv.style.color = 'var(--neural-secondary)';
+                setTimeout(() => loadingDiv.remove(), 2000);
+            }
+            paginationState.isLoading = false;
+        }
+    }
+
+    // Load previous chat messages
+    async function loadChatHistory() {
+        // Reset pagination state
+        paginationState.nextUrl = null;
+        paginationState.isLoading = false;
+        paginationState.hasMore = true;
+        const chatMessages = document.getElementById("chatMessages");
+        
+        // Clear existing messages first (except loading indicators)
+        const allMessages = chatMessages.querySelectorAll('.neural-message');
+        allMessages.forEach(msg => {
+            if (msg.id !== 'chat-history-loading' && msg.id !== 'chat-history-loading-top') {
+                msg.remove();
+            }
+        });
+        
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "chat-history-loading";
+        loadingDiv.className = "neural-message bot";
+        loadingDiv.textContent = "◦ Loading neural memory banks ◦";
+        chatMessages.appendChild(loadingDiv);
+
+        try {
+            // Construct API URL for chat history
+            let historyUrl;
+            if (config.apiUrl.includes('/stream/')) {
+                historyUrl = config.apiUrl.replace('/stream/', '/chats/');
+            } else if (config.apiUrl.includes('/stream')) {
+                historyUrl = config.apiUrl.replace('/stream', '/chats');
+            } else {
+                // Fallback: try to append /chats/ to base URL
+                const baseUrl = config.apiUrl.replace(/\/+$/, '');
+                historyUrl = baseUrl.replace(/\/api\/.*$/, '/api/chats/') || baseUrl + '/chats/';
+            }
+            
+            // Ensure limit parameter is set to 100
+            const url = new URL(historyUrl, window.location.origin);
+            url.searchParams.set('limit', '100');
+            
+            const response = await fetch(url.toString(), {
+                method: "GET",
+                headers: {
+                    "Authorization": config.authToken,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                console.warn("Failed to load chat history:", response.status, response.statusText);
+                const loadingDiv = document.getElementById("chat-history-loading");
+                if (loadingDiv) {
+                    loadingDiv.textContent = `◦ Neural memory access denied (${response.status}) ◦`;
+                    loadingDiv.style.color = 'var(--neural-secondary)';
+                }
+                return;
+            }
+
+            const data = await response.json();
+            
+            // Update pagination state
+            paginationState.nextUrl = data.next || null;
+            paginationState.hasMore = !!data.next;
+            
+            // Handle different response formats
+            let results = [];
+            if (Array.isArray(data)) {
+                results = data;
+            } else if (data.results && Array.isArray(data.results)) {
+                results = data.results;
+            } else if (data.messages && Array.isArray(data.messages)) {
+                results = data.messages;
+            } else if (data.data && Array.isArray(data.data)) {
+                results = data.data;
+            }
+
+            // Remove loading indicator
+            const loadingDiv = document.getElementById("chat-history-loading");
+            if (loadingDiv) loadingDiv.remove();
+
+            if (results.length === 0) {
+                const emptyMessage = document.createElement("div");
+                emptyMessage.className = "neural-message bot";
+                emptyMessage.textContent = "◦ No previous neural transmissions found ◦";
+                emptyMessage.style.opacity = '0.6';
+                chatMessages.appendChild(emptyMessage);
+                return;
+            }
+
+            // API returns messages in chronological order (oldest first) via StandardResultsSetPagination.reverse()
+            // Append in order so display is: oldest at top, newest at bottom (conventional chat)
+            results.forEach(chatMessage => {
+                try {
+                    const isUser = chatMessage.role === 'user' || chatMessage.role === 'USER';
+                    let messageContent;
+                    
+                    if (typeof chatMessage.message === 'string') {
+                        try {
+                            messageContent = JSON.parse(chatMessage.message);
+                        } catch (parseError) {
+                            // If parsing fails, treat as plain text
+                            messageContent = { text: chatMessage.message };
+                        }
+                    } else if (chatMessage.message && typeof chatMessage.message === 'object') {
+                        messageContent = chatMessage.message;
+                    } else {
+                        // Fallback for other formats
+                        messageContent = { text: chatMessage.message || chatMessage.text || "Message content unavailable" };
+                    }
+
+                    // Ensure role is set
+                    if (!messageContent.role) {
+                        messageContent.role = chatMessage.role || (isUser ? 'user' : 'assistant');
+                    }
+
+                    appendMessage(messageContent, isUser, true);
+                } catch (e) {
+                    console.warn("Error parsing chat history message:", e, chatMessage);
+                    // Fallback: display as plain text
+                    const fallbackText = chatMessage.message || chatMessage.text || "Message content unavailable";
+                    appendMessage(fallbackText, chatMessage.role === 'user', true);
+                }
+            });
+
+            // Scroll to bottom after loading
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 200);
+
+        } catch (error) {
+            console.error("Error loading chat history:", error);
+            const loadingDiv = document.getElementById("chat-history-loading");
+            if (loadingDiv) {
+                loadingDiv.textContent = "◦ Neural memory access error ◦";
+                loadingDiv.style.color = 'var(--neural-secondary)';
+                setTimeout(() => {
+                    if (loadingDiv.parentNode) {
+                        loadingDiv.remove();
+                    }
+                }, 3000);
+            }
+        }
+    }
+
+    // Save config to localStorage
+    function saveConfig() {
+        localStorage.setItem('mylaConfig', JSON.stringify(config));
+    }
+
+    // Update UI elements from current config
+    function updateUIFromConfig() {
+        document.getElementById('apiUrlInput').value = config.apiUrl;
+        document.getElementById('authTokenInput').value = config.authToken;
+        const toggle = document.getElementById('newThreadToggle');
+        const input = document.getElementById('newThreadInput');
+        if (config.newThread) {
+            toggle.classList.add('active');
+            input.checked = true;
+        } else {
+            toggle.classList.remove('active');
+            input.checked = false;
+        }
+    }
+
+    // Update config from UI elements
+    function updateConfigFromUI() {
+        config.apiUrl = document.getElementById('apiUrlInput').value.trim();
+        config.authToken = document.getElementById('authTokenInput').value.trim();
+        config.newThread = document.getElementById('newThreadInput').checked;
+    }
+
+    // Initialize settings panel
+    function initSettingsPanel() {
+        const settingsButton = document.getElementById('settingsButton');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsSave = document.getElementById('settingsSave');
+        const settingsCancel = document.getElementById('settingsCancel');
+        const toggleSwitch = document.getElementById('newThreadToggle');
+        const toggleInput = document.getElementById('newThreadInput');
+
+        settingsButton.addEventListener('click', () => {
+            settingsPanel.classList.toggle('active');
+        });
+
+        toggleSwitch.addEventListener('click', () => {
+            toggleInput.checked = !toggleInput.checked;
+            toggleSwitch.classList.toggle('active', toggleInput.checked);
+        });
+
+        settingsSave.addEventListener('click', async () => {
+            updateConfigFromUI();
+            saveConfig();
+            settingsPanel.classList.remove('active');
+            
+            // Reload chat history if API URL or token changed
+            if (config.authToken && 
+                config.authToken !== "Bearer your_token_here" && 
+                config.apiUrl) {
+                await loadChatHistory();
+            }
+        });
+
+        settingsCancel.addEventListener('click', () => {
+            updateUIFromConfig();
+            settingsPanel.classList.remove('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!settingsPanel.contains(e.target) && e.target !== settingsButton) {
+                settingsPanel.classList.remove('active');
+            }
+        });
+    }
+
+    let currentStreamingMessage = null;
+    let tempMessageElement = null;
+    
+    // Pagination state
+    let paginationState = {
+        nextUrl: null,
+        isLoading: false,
+        hasMore: true
+    };
+
+    // Normalize message content: backend may send action_type (snake_case) or actionType (camelCase)
+    function normalizeContent(content) {
+        if (typeof content !== 'object' || !content) return content;
+        const normalized = { ...content };
+        normalized.actionType = content.actionType ?? content.action_type ?? 'None';
+        normalized.actions = Array.isArray(content.actions) ? content.actions : [];
+        return normalized;
+    }
+
+    // Generic: get display label and send payload for any action (string or object of any shape)
+    function getActionLabelAndPayload(action) {
+        if (typeof action === 'string') return { label: action, payload: action };
+        if (action && typeof action === 'object') {
+            const labelKeys = ['name', 'text', 'label', 'title', 'description'];
+            let label = null;
+            for (const k of labelKeys) {
+                if (action[k] != null && action[k] !== '') {
+                    label = k === 'option' ? humanizeOption(String(action[k])) : String(action[k]);
+                    break;
+                }
+            }
+            if (label == null && action.option != null) label = humanizeOption(String(action.option));
+            if (label == null) {
+                const firstStr = Object.values(action).find(v => typeof v === 'string' && v);
+                label = firstStr != null ? firstStr : JSON.stringify(action);
+            }
+            const payloadKeys = ['name', 'text', 'label', 'title', 'option', 'value', 'id'];
+            let payload = null;
+            for (const k of payloadKeys) {
+                if (action[k] != null && action[k] !== '') {
+                    payload = typeof action[k] === 'string' ? action[k] : JSON.stringify(action[k]);
+                    break;
+                }
+            }
+            if (payload == null) payload = typeof label === 'string' ? label : JSON.stringify(action);
+            return { label: String(label), payload: String(payload) };
+        }
+        return { label: String(action), payload: String(action) };
+    }
+
+    function humanizeOption(option) {
+        if (typeof option !== 'string') return String(option);
+        const map = { retake: 'Retake assessment', view_results: 'View results', choose_different: 'Choose different assessment' };
+        return map[option] ?? option.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Generic: humanize any action type string for display (e.g. ASSESSMENT_CATEGORY -> "Assessment Category")
+    function humanizeActionType(actionType) {
+        if (actionType == null || actionType === 'None') return 'Options';
+        const s = String(actionType).trim();
+        if (!s) return 'Options';
+        return s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Generic: derive styles from any action type string (hash -> hue for consistent but dynamic colors)
+    function getActionTypeStyles(actionType) {
+        const defaultBorder = 'rgba(168, 85, 247, 0.35)';
+        const defaultBg = 'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05))';
+        if (actionType == null || actionType === 'None') return `--action-border: ${defaultBorder}; --action-bg: ${defaultBg};`;
+        let hash = 0;
+        const str = String(actionType);
+        for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
+        const hue = Math.abs(hash % 360);
+        const h = hue / 60;
+        const c = 0.25;
+        const x = c * (1 - Math.abs((h % 2) - 1));
+        const m = 0.12;
+        let r = 0, g = 0, b = 0;
+        if (h < 1) { r = c + m; g = x + m; b = m; }
+        else if (h < 2) { r = x + m; g = c + m; b = m; }
+        else if (h < 3) { r = m; g = c + m; b = x + m; }
+        else if (h < 4) { r = m; g = x + m; b = c + m; }
+        else if (h < 5) { r = x + m; g = m; b = c + m; }
+        else { r = c + m; g = m; b = x + m; }
+        const R = Math.round(r * 255);
+        const G = Math.round(g * 255);
+        const B = Math.round(b * 255);
+        const border = `rgba(${R},${G},${B},0.5)`;
+        const bg = `linear-gradient(135deg, rgba(${R},${G},${B},0.2), rgba(${R},${G},${B},0.06))`;
+        return `--action-border: ${border}; --action-bg: ${bg};`;
+    }
+
+    function appendMessage(content, isUser = false, skipScroll = false, prepend = false) {
+        const chatMessages = document.getElementById("chatMessages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `neural-message ${isUser ? 'user' : 'bot'}`;
+        
+        if (typeof content === 'object' && content !== null) {
+            const c = normalizeContent(content);
+            const text = c.text ?? '';
+            if (text) {
+                const textContent = document.createElement("div");
+                textContent.innerHTML = `${c.avatar ? '<strong>' + c.avatar + ':</strong> ' : ''}${marked.parse(text)}`;
+                messageDiv.appendChild(textContent);
+            }
+
+            // Generic: any message with a non-empty actions array shows as a list (actionType can be anything)
+            if (c.actions && c.actions.length > 0) {
+                const actionsContainer = document.createElement("div");
+                actionsContainer.className = "neural-actions neural-actions-dynamic";
+                actionsContainer.setAttribute("data-action-type", c.actionType);
+                actionsContainer.style.cssText = getActionTypeStyles(c.actionType);
+
+                const typeLabel = document.createElement("div");
+                typeLabel.className = "neural-action-type-label";
+                typeLabel.textContent = humanizeActionType(c.actionType);
+                actionsContainer.appendChild(typeLabel);
+
+                c.actions.forEach(action => {
+                    const { label, payload } = getActionLabelAndPayload(action);
+                    const actionItem = document.createElement("button");
+                    actionItem.type = "button";
+                    actionItem.className = "neural-action-item";
+                    actionItem.textContent = label;
+                    actionItem.onclick = () => sendAction(payload);
+                    actionsContainer.appendChild(actionItem);
+                });
+                messageDiv.appendChild(actionsContainer);
+            }
+        } else {
+            messageDiv.innerHTML = marked.parse(String(content));
+        }
+
+        // Optional subtle action type indicator (no debug clutter)
+        if (typeof content === 'object' && content !== null) {
+            const c = normalizeContent(content);
+            if (c.actionType && c.actionType !== 'None' && (!c.actions || c.actions.length === 0)) {
+                const actionTypeIndicator = document.createElement("div");
+                actionTypeIndicator.className = "action-type-indicator";
+                actionTypeIndicator.textContent = c.actionType;
+                messageDiv.appendChild(actionTypeIndicator);
+            }
+        }
+        
+        if (prepend) {
+            // Get the first message element (or loading indicator) to insert before
+            const firstChild = chatMessages.firstChild;
+            if (firstChild) {
+                chatMessages.insertBefore(messageDiv, firstChild);
+            } else {
+                chatMessages.appendChild(messageDiv);
+            }
+        } else {
+            chatMessages.appendChild(messageDiv);
+        }
+        
+        if (!skipScroll && !prepend) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    // Download conversation function
+    function downloadConversation() {
+        const chatMessages = document.getElementById("chatMessages");
+        const allMessages = chatMessages.querySelectorAll('.neural-message:not(#chat-history-loading):not(#chat-history-loading-top)');
+        
+        if (allMessages.length === 0) {
+            alert("No conversation to download");
+            return;
+        }
+
+        let conversationText = "=".repeat(60) + "\n";
+        conversationText += "NEURO AI - Conversation Export\n";
+        conversationText += "=".repeat(60) + "\n";
+        conversationText += `Exported on: ${new Date().toLocaleString()}\n`;
+        conversationText += `Total Messages: ${allMessages.length}\n`;
+        conversationText += "=".repeat(60) + "\n\n";
+
+        allMessages.forEach((messageDiv, index) => {
+            const isUser = messageDiv.classList.contains('user');
+            
+            // Extract text content from the message
+            const textDiv = messageDiv.querySelector('div:first-child');
+            let messageText = '';
+            let avatarName = null;
+            
+            if (textDiv) {
+                // Try to get text content, handling both HTML and plain text
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = textDiv.innerHTML;
+                
+                // Extract avatar name if present (format: <strong>Avatar:</strong>)
+                const strongTag = tempDiv.querySelector('strong');
+                if (strongTag) {
+                    const avatarText = strongTag.textContent || '';
+                    if (avatarText.endsWith(':')) {
+                        avatarName = avatarText.slice(0, -1).trim();
+                        strongTag.remove(); // Remove avatar from message text
+                    }
+                }
+                
+                // Remove action type indicators if present
+                const actionIndicators = tempDiv.querySelectorAll('.action-type-indicator');
+                actionIndicators.forEach(el => el.remove());
+                
+                // Get plain text, preserving line breaks
+                messageText = tempDiv.innerText || tempDiv.textContent || '';
+            } else {
+                // Fallback: get all text content
+                messageText = messageDiv.innerText || messageDiv.textContent || '';
+            }
+            
+            // Clean up the message text
+            messageText = messageText.trim();
+            
+            // Skip empty messages
+            if (!messageText) return;
+            
+            // Determine sender name
+            let sender = "User";
+            if (!isUser) {
+                sender = avatarName || "Agent";
+            }
+            
+            // Format the message
+            conversationText += `[${index + 1}] ${sender}:\n`;
+            conversationText += "-".repeat(40) + "\n";
+            conversationText += messageText + "\n";
+            conversationText += "\n";
+        });
+
+        conversationText += "\n" + "=".repeat(60) + "\n";
+        conversationText += "End of Conversation\n";
+        conversationText += "=".repeat(60) + "\n";
+
+        // Create and download the file
+        const blob = new Blob([conversationText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        a.href = url;
+        a.download = `neuro-ai-conversation-${timestamp}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function createTempMessage() {
+        const chatMessages = document.getElementById("chatMessages");
+        tempMessageElement = document.createElement("div");
+        tempMessageElement.id = "temp-bot-message";
+        tempMessageElement.className = "neural-message bot neural-streaming";
+        tempMessageElement.innerHTML = '<div class="neural-streaming-text"></div>';
+        chatMessages.appendChild(tempMessageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return tempMessageElement;
+    }
+
+    function updateTempMessage(streamedText) {
+        if (!tempMessageElement) {
+            createTempMessage();
+        }
+        const textEl = tempMessageElement.querySelector('.neural-streaming-text');
+        if (textEl) {
+            textEl.textContent = streamedText || '';
+        }
+        const chatMessages = document.getElementById("chatMessages");
+        if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+        return tempMessageElement;
+    }
+
+    function removeTempMessage() {
+        if (tempMessageElement) {
+            tempMessageElement.remove();
+            tempMessageElement = null;
+        }
+    }
+
+    function sendAction(actionText) {
+        appendMessage(actionText, true);
+        postMessage(actionText);
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const userMessage = input.value.trim();
+        if (!userMessage) return;
+
+        appendMessage(userMessage, true);
+        input.value = "";
+        postMessage(userMessage);
+    }
+
+    async function postMessage(message) {
+        try {
+            currentStreamingMessage = null;
+            removeTempMessage();
+
+            const response = await fetch(config.apiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": config.authToken,
+                },
+                body: JSON.stringify({ 
+                    message, 
+                    new_thread: config.newThread,
+                    is_audio: false 
+                }),
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.body) throw new Error("No response body");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const jsonStr = line.slice(6);
+                        if (!jsonStr) continue;
+
+                        const data = JSON.parse(jsonStr);
+                        
+                        if (data.chunk) {
+                            const isStringChunk = typeof data.chunk === 'string';
+                            const isLastMessage = data.last_message === true;
+                            const isFullMessageObject = typeof data.chunk === 'object' && data.chunk && data.chunk.message != null;
+
+                            if (isLastMessage && isFullMessageObject) {
+                                removeTempMessage();
+                                try {
+                                    let messageContent;
+                                    if (typeof data.chunk.message === 'string') {
+                                        messageContent = JSON.parse(data.chunk.message);
+                                    } else {
+                                        messageContent = data.chunk.message;
+                                    }
+                                    appendMessage(messageContent);
+                                } catch (e) {
+                                    console.warn("Failed to parse message content:", e);
+                                    if (typeof data.chunk.message === 'string') {
+                                        appendMessage(data.chunk.message);
+                                    } else {
+                                        appendMessage(JSON.stringify(data.chunk.message));
+                                    }
+                                }
+                            } else if (isStringChunk) {
+                                if (currentStreamingMessage == null) {
+                                    currentStreamingMessage = '';
+                                    createTempMessage();
+                                }
+                                currentStreamingMessage += data.chunk;
+                                updateTempMessage(currentStreamingMessage);
+                            }
+                            /* When last_message is false but chunk is full object (e.g. Circle multi-chunk): do not append to avoid duplicates */
+                        }
+                    } catch (error) {
+                        console.error("Error parsing chunk:", error);
+                        buffer = lines.slice(i).join('\n');
+                        break;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            removeTempMessage();
+            appendMessage("◆ Neural connection error. Please retry transmission ◆", false);
+        }
+    }
+
+    // Initialize the neural interface
+    document.addEventListener('DOMContentLoaded', async () => {
+        initNeuralNetwork();
+        loadConfig();
+        initSettingsPanel();
+        
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Add download button event listener
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            downloadConversation();
+        });
+
+        // Add scroll listener for infinite scroll (load older messages)
+        const chatMessages = document.getElementById("chatMessages");
+        let scrollThreshold = 100; // Load when within 100px of top
+        
+        chatMessages.addEventListener('scroll', () => {
+            // Check if user scrolled near the top
+            if (chatMessages.scrollTop <= scrollThreshold && 
+                paginationState.hasMore && 
+                !paginationState.isLoading) {
+                loadOlderMessages();
+            }
+        });
+
+        // Load chat history after initialization
+        setTimeout(async () => {
+            if (config.authToken && 
+                config.authToken !== "Bearer your_token_here" && 
+                config.apiUrl && 
+                config.apiUrl !== "http://127.0.0.1:8000/app/api/stream/") {
+                await loadChatHistory();
+            }
+        }, 500);
+        
+        // Add manual refresh capability
+        window.refreshChatHistory = loadChatHistory;
+    });
+</script>
+
+</body>
+</html>

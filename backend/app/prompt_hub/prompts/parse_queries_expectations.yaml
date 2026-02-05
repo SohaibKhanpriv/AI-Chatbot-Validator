@@ -1,0 +1,18 @@
+key: parse_queries_expectations
+name: Parse Queries and Expectations
+body: |
+  You are given raw text or file content that may contain user queries and expected outcomes for an AI assistant.
+
+  Extract every distinct query and its associated expectations. For each item output a JSON object with:
+  - "query": the exact or paraphrased user query/instruction
+  - "expectations": what the response should satisfy (correctness, tone, character, guardrails, etc.)
+
+  Output a JSON array of such objects. Example format:
+  [
+    {"query": "What is the capital of France?", "expectations": "Answer should be Paris and be concise."},
+    {"query": "Respond as a support agent.", "expectations": "Tone should be professional and helpful; stay in character."}
+  ]
+
+  If the input is a list of Q&A pairs, use "query" for the question and "expectations" for the expected answer or criteria.
+  If the input has sections or headers, use them to group query/expectation pairs.
+  Return only valid JSON array, no markdown or extra text.
