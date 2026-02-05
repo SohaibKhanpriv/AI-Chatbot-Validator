@@ -31,8 +31,12 @@ export default function DatasetDetailClient({ datasetId, initialDataset }: Props
   const [systemBehavior, setSystemBehavior] = useState(initialDataset.system_behavior ?? "");
   const [reEvaluateLoading, setReEvaluateLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [addQueryLoading, setAddQueryLoading] = useState(false);
+  const [reorderLoading, setReorderLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editRows, setEditRows] = useState<Record<number, { query_text: string; expectations: string }>>({});
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   const refetch = useCallback(async () => {
     try {
@@ -115,6 +119,66 @@ export default function DatasetDetailClient({ datasetId, initialDataset }: Props
     }));
   };
 
+  const handleAddQuery = async () => {
+    setError(null);
+    setAddQueryLoading(true);
+    try {
+      await api.datasets.createQuery(datasetId, { query_text: "", expectations: "" });
+      await refetch();
+      startEdit();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Add query failed");
+    } finally {
+      setAddQueryLoading(false);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, queryId: number) => {
+    if (reorderLoading) return;
+    setDraggingId(queryId);
+    e.dataTransfer.setData("text/plain", String(queryId));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDropTargetIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDropTargetIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    setDropTargetIndex(null);
+    const draggedId = draggingId ?? Number(e.dataTransfer.getData("text/plain"));
+    setDraggingId(null);
+    if (!draggedId) return;
+    const ids = dataset.queries.map((q) => q.id);
+    const fromIndex = ids.indexOf(draggedId);
+    if (fromIndex === -1 || fromIndex === toIndex) return;
+    const newOrder = [...ids];
+    const [removed] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, removed);
+    setReorderLoading(true);
+    setError(null);
+    try {
+      const next = await api.datasets.reorderQueries(datasetId, newOrder);
+      setDataset(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reorder failed");
+    } finally {
+      setReorderLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
@@ -177,6 +241,14 @@ export default function DatasetDetailClient({ datasetId, initialDataset }: Props
 
       <div className="flex flex-wrap gap-2">
         <button
+          onClick={handleAddQuery}
+          disabled={addQueryLoading}
+          className="px-4 py-2 rounded-lg bg-[var(--neural-green)]/20 text-[var(--neural-green)] border border-[var(--neural-green)]/50 hover:bg-[var(--neural-green)]/30 disabled:opacity-50 text-sm"
+          title="Add a new query and expectation row"
+        >
+          {addQueryLoading ? "Adding…" : "+ Add query"}
+        </button>
+        <button
           onClick={handleReEvaluate}
           disabled={reEvaluateLoading}
           className="px-4 py-2 rounded-lg bg-[var(--neural-primary)]/20 text-[var(--neural-primary)] border border-[var(--neural-primary)]/50 hover:bg-[var(--neural-primary)]/30 disabled:opacity-50 text-sm"
@@ -213,7 +285,8 @@ export default function DatasetDetailClient({ datasetId, initialDataset }: Props
           <table className="w-full text-left">
             <thead className="sticky top-0 bg-[var(--card-bg)] border-b border-white/10">
               <tr>
-                <th className="p-3 text-sm text-zinc-400 font-medium">#</th>
+                <th className="p-2 w-9 text-zinc-400 font-medium" aria-label="Drag to reorder" />
+                <th className="p-3 text-sm text-zinc-400 font-medium w-10">#</th>
                 <th className="p-3 text-sm text-zinc-400 font-medium">Query</th>
                 <th className="p-3 text-sm text-zinc-400 font-medium">Expectations</th>
               </tr>
@@ -224,9 +297,30 @@ export default function DatasetDetailClient({ datasetId, initialDataset }: Props
                 const isUnclear = meta.expectations_clear === false;
                 const row = editRows[q.id];
                 const showInputs = editing && row != null;
+                const isDragging = draggingId === q.id;
+                const isDropTarget = dropTargetIndex === i;
                 return (
-                  <tr key={q.id} className="border-b border-white/5">
-                    <td className="p-3 text-zinc-500">{i + 1}</td>
+                  <tr
+                    key={q.id}
+                    className={`border-b border-white/5 transition-colors ${
+                      isDragging ? "opacity-50" : ""
+                    } ${isDropTarget ? "bg-[var(--neural-primary)]/10 border-b-2 border-[var(--neural-primary)]/50" : ""}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, q.id)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, i)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <td
+                      className="p-2 w-9 cursor-grab active:cursor-grabbing text-zinc-500 hover:text-zinc-300"
+                      title="Drag to reorder"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path d="M2 6a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1V6zM2 12a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1v-2zM8 6a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1V6zM8 12a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H9a1 1 0 01-1-1v-2zM14 6a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V6zM14 12a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2z" />
+                      </svg>
+                    </td>
+                    <td className="p-3 text-zinc-500 w-10">{i + 1}</td>
                     <td className="p-3 text-sm">
                       {showInputs ? (
                         <input

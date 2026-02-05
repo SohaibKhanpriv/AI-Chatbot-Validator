@@ -1,4 +1,4 @@
-from sqlalchemy import String, Text, Integer, DateTime, ForeignKey
+from sqlalchemy import Integer, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
@@ -14,4 +14,5 @@ class Query(Base):
     query_text: Mapped[str] = mapped_column(Text, nullable=False)
     expectations: Mapped[str | None] = mapped_column(Text, nullable=True)
     meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

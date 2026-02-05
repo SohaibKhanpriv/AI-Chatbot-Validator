@@ -1,10 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.database import get_db
 from app.models import Dataset, Query
-from app.schemas.datasets import DatasetCreate, DatasetOut, DatasetUpdate, DatasetWithQueriesOut, QueryOut, QueryUpdate
+from app.schemas.datasets import (
+    DatasetCreate,
+    DatasetOut,
+    DatasetUpdate,
+    DatasetWithQueriesOut,
+    QueryCreate,
+    QueryOut,
+    QueryUpdate,
+    QueriesReorder,
+)
 from app.services.parser_service import create_dataset_and_queries
 from app.services.file_text_extract import extract_text_from_file
 from app.services.expectation_clarity_service import evaluate_dataset_expectations
@@ -55,7 +64,9 @@ async def get_dataset(dataset_id: int, db: AsyncSession = Depends(get_db)):
     dataset = await db.get(Dataset, dataset_id)
     if not dataset:
         raise HTTPException(404, "Dataset not found")
-    result = await db.execute(select(Query).where(Query.dataset_id == dataset_id).order_by(Query.id))
+    result = await db.execute(
+        select(Query).where(Query.dataset_id == dataset_id).order_by(Query.sort_order, Query.id)
+    )
     queries = result.scalars().all()
     return DatasetWithQueriesOut(
         id=dataset.id,
@@ -110,6 +121,72 @@ async def patch_query(
     await db.commit()
     await db.refresh(query)
     return QueryOut.model_validate(query)
+
+
+@router.post("/{dataset_id}/queries", response_model=QueryOut)
+async def create_query(
+    dataset_id: int,
+    body: QueryCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    dataset = await db.get(Dataset, dataset_id)
+    if not dataset:
+        raise HTTPException(404, "Dataset not found")
+    max_order = await db.execute(
+        select(func.coalesce(func.max(Query.sort_order), 0)).where(Query.dataset_id == dataset_id)
+    )
+    next_order = (max_order.scalar() or 0) + 1
+    query = Query(
+        dataset_id=dataset_id,
+        query_text=body.query_text or "",
+        expectations=body.expectations,
+        sort_order=next_order,
+    )
+    db.add(query)
+    await db.commit()
+    await db.refresh(query)
+    return QueryOut.model_validate(query)
+
+
+@router.put("/{dataset_id}/queries/reorder", response_model=DatasetWithQueriesOut)
+async def reorder_queries(
+    dataset_id: int,
+    body: QueriesReorder,
+    db: AsyncSession = Depends(get_db),
+):
+    dataset = await db.get(Dataset, dataset_id)
+    if not dataset:
+        raise HTTPException(404, "Dataset not found")
+    if not body.query_ids:
+        result = await db.execute(
+            select(Query).where(Query.dataset_id == dataset_id).order_by(Query.sort_order, Query.id)
+        )
+        queries = result.scalars().all()
+        return DatasetWithQueriesOut(
+            id=dataset.id,
+            name=dataset.name,
+            source_type=dataset.source_type,
+            created_at=dataset.created_at,
+            system_behavior=getattr(dataset, "system_behavior", None),
+            queries=[QueryOut.model_validate(q) for q in queries],
+        )
+    for order, query_id in enumerate(body.query_ids):
+        query = await db.get(Query, query_id)
+        if query and query.dataset_id == dataset_id:
+            query.sort_order = order
+    await db.commit()
+    result = await db.execute(
+        select(Query).where(Query.dataset_id == dataset_id).order_by(Query.sort_order, Query.id)
+    )
+    queries = result.scalars().all()
+    return DatasetWithQueriesOut(
+        id=dataset.id,
+        name=dataset.name,
+        source_type=dataset.source_type,
+        created_at=dataset.created_at,
+        system_behavior=getattr(dataset, "system_behavior", None),
+        queries=[QueryOut.model_validate(q) for q in queries],
+    )
 
 
 @router.post("/{dataset_id}/evaluate-expectations")

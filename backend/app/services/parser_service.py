@@ -60,11 +60,12 @@ async def create_dataset_and_queries(
     session.add(dataset)
     await session.flush()
     queries = []
-    for item in items:
+    for i, item in enumerate(items):
         q = Query(
             dataset_id=dataset.id,
             query_text=item["query"],
             expectations=item.get("expectations") or None,
+            sort_order=i,
         )
         session.add(q)
         queries.append(q)

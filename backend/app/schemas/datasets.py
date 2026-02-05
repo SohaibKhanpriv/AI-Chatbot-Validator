@@ -32,9 +32,18 @@ class QueryOut(BaseModel):
         from_attributes = True
 
 
+class QueryCreate(BaseModel):
+    query_text: str = ""
+    expectations: Optional[str] = None
+
+
 class QueryUpdate(BaseModel):
     query_text: Optional[str] = None
     expectations: Optional[str] = None
+
+
+class QueriesReorder(BaseModel):
+    query_ids: list[int]
 
 
 class DatasetUpdate(BaseModel):

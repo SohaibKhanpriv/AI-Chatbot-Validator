@@ -123,10 +123,20 @@ export const api = {
       fetcher<{ clear_count: number; unclear_count: number }>(`/datasets/${id}/evaluate-expectations`, {
         method: "POST",
       }),
+    createQuery: (datasetId: number, body: { query_text?: string; expectations?: string | null }) =>
+      fetcher<QueryOut>(`/datasets/${datasetId}/queries`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     patchQuery: (datasetId: number, queryId: number, body: { query_text?: string; expectations?: string | null }) =>
       fetcher<QueryOut>(`/datasets/${datasetId}/queries/${queryId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
+      }),
+    reorderQueries: (datasetId: number, queryIds: number[]) =>
+      fetcher<DatasetWithQueries>(`/datasets/${datasetId}/queries/reorder`, {
+        method: "PUT",
+        body: JSON.stringify({ query_ids: queryIds }),
       }),
     delete: (id: number) => fetcher<{ ok: boolean }>(`/datasets/${id}`, { method: "DELETE" }),
   },
