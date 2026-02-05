@@ -7,6 +7,7 @@ from app.models import Run, Query
 from app.schemas.runs import RunCreate, RunOut
 from app.services.message_processing_service import process_run
 from app.services.validation_service import validate_run
+from app.services.token_usage_service import estimate_validation_tokens
 
 router = APIRouter(prefix="/runs", tags=["runs"])
 
@@ -73,6 +74,36 @@ async def list_runs(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Run).order_by(Run.created_at.desc()))
     runs = result.scalars().all()
     return [RunOut.model_validate(r) for r in runs]
+
+
+@router.get("/token-usage")
+async def get_all_runs_token_usage(db: AsyncSession = Depends(get_db)):
+    """
+    Approximate validation token usage for all completed runs that have validations.
+    Input tokens from reconstructed prompts (tiktoken if available); output estimated ~100 tokens per item.
+    """
+    rows = await estimate_validation_tokens(db, run_id=None)
+    total_input = sum(r["total_input_tokens"] for r in rows)
+    total_est_output = sum(r["total_est_output_tokens"] for r in rows)
+    return {
+        "runs": rows,
+        "totals": {
+            "total_input_tokens": total_input,
+            "total_est_output_tokens": total_est_output,
+            "total_est_tokens": total_input + total_est_output,
+        },
+    }
+
+
+@router.get("/{run_id}/token-usage")
+async def get_run_token_usage(run_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Approximate validation token usage for one run: input tokens per batch and totals.
+    """
+    rows = await estimate_validation_tokens(db, run_id=run_id)
+    if not rows:
+        raise HTTPException(404, "Run not found or has no validations")
+    return rows[0]
 
 
 @router.get("/{run_id}", response_model=RunOut)
