@@ -49,6 +49,7 @@ export type Run = {
   total_queries: number;
   processed_count: number;
   status: string;
+  validation_status: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
@@ -183,6 +184,8 @@ export const api = {
       criterion_keys?: string[] | null;
     }) => fetcher<Run>("/runs", { method: "POST", body: JSON.stringify(body) }),
     delete: (id: number) => fetcher<{ ok: boolean }>(`/runs/${id}`, { method: "DELETE" }),
+    startValidation: (id: number) =>
+      fetcher<Run>(`/runs/${id}/validate`, { method: "POST" }),
   },
   progress: (runId: number) => fetcher<Progress>(`/runs/${runId}/progress`),
   prompts: {

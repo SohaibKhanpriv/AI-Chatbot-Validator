@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { api, type Run } from "@/lib/api";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -11,6 +13,72 @@ const navItems = [
   { href: "/prompt-hub", label: "Prompt Hub" },
   { href: "/criteria", label: "Validation Criteria" },
 ];
+
+const POLL_INTERVAL_MS = 4000;
+
+function BackgroundTasksList() {
+  const [runs, setRuns] = useState<Run[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchRuns = async () => {
+      try {
+        const list = await api.runs.list();
+        if (!cancelled) setRuns(list);
+      } catch {
+        if (!cancelled) setRuns([]);
+      }
+    };
+    fetchRuns();
+    const interval = setInterval(() => {
+      fetchRuns();
+    }, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const runningRuns = runs.filter((r) => r.status === "running");
+  const validatingRuns = runs.filter((r) => r.validation_status === "running");
+  const hasTasks = runningRuns.length > 0 || validatingRuns.length > 0;
+
+  if (!hasTasks) return null;
+
+  return (
+    <div className="p-2 border-t border-[var(--glass-border)]">
+      <p className="px-3 py-1.5 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+        Background tasks
+      </p>
+      <ul className="space-y-1 mt-1">
+        {runningRuns.map((r) => (
+          <li key={r.id}>
+            <Link
+              href={`/runs/${r.id}`}
+              className="block px-3 py-2 rounded-lg text-sm text-[var(--neural-primary)] bg-[var(--neural-primary)]/10 truncate"
+              title={r.name}
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--neural-primary)] animate-pulse mr-2 align-middle" />
+              Run: {r.name}
+            </Link>
+          </li>
+        ))}
+        {validatingRuns.map((r) => (
+          <li key={`v-${r.id}`}>
+            <Link
+              href={`/runs/${r.id}/report`}
+              className="block px-3 py-2 rounded-lg text-sm text-[var(--neural-accent)] bg-[var(--neural-accent)]/10 truncate"
+              title={r.name}
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--neural-accent)] animate-pulse mr-2 align-middle" />
+              Validating: {r.name}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Sidebar({
   collapsed,
@@ -55,6 +123,7 @@ export default function Sidebar({
           })}
         </nav>
       )}
+      {!collapsed && <BackgroundTasksList />}
       <div className="p-2 border-t border-[var(--glass-border)]">
         <button
           type="button"

@@ -17,6 +17,14 @@ import sys
 # Run from backend so app is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load .env from backend dir so INPUT_PER_1M / OUTPUT_PER_1M are used
+try:
+    from dotenv import load_dotenv
+    _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(os.path.join(_backend_dir, ".env"))
+except ImportError:
+    pass
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -230,10 +238,14 @@ def main():
     parser.add_argument("--cost", action="store_true", help="Show estimated cost (set INPUT_PER_1M and OUTPUT_PER_1M env or use defaults)")
     args = parser.parse_args()
 
-    # Optional: cost per 1M tokens (USD). Adjust for your model.
-    # e.g. GPT-4o mini: input ~0.15, output ~0.60; GPT-4: higher.
-    input_per_1m = float(os.environ.get("INPUT_PER_1M", "2.50"))   # default rough GPT-4
-    output_per_1m = float(os.environ.get("OUTPUT_PER_1M", "10.00"))
+    # Optional: cost per 1M tokens (USD). From .env or env (strip quotes if present).
+    def _env_float(key: str, default: str) -> float:
+        v = os.environ.get(key, default).strip().strip('"').strip("'")
+        return float(v) if v else float(default)
+    input_per_1m = _env_float("INPUT_PER_1M", "2.50")
+    output_per_1m = _env_float("OUTPUT_PER_1M", "10.00")
+    if args.cost:
+        print(f"INPUT_PER_1M: {input_per_1m}  OUTPUT_PER_1M: {output_per_1m}")
 
     session = get_sync_session()
     try:

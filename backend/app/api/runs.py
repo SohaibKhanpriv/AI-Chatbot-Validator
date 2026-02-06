@@ -51,6 +51,7 @@ async def create_run(
 
 
 async def _run_message_processing(run_id: int):
+    """Run message processing only. Validation is started manually via POST /runs/{id}/validate."""
     from app.database import async_session_maker
     async with async_session_maker() as session:
         try:
@@ -61,12 +62,26 @@ async def _run_message_processing(run_id: int):
                 if run:
                     run.status = "failed"
                     await session2.commit()
-        else:
+
+
+async def _run_validation(run_id: int):
+    """Background task: run validation and set validation_status completed/failed."""
+    from app.database import async_session_maker
+    async with async_session_maker() as session:
+        try:
+            await validate_run(session, run_id)
+        except Exception:
             async with async_session_maker() as session2:
-                try:
-                    await validate_run(session2, run_id)
-                except Exception:
-                    pass
+                run = await session2.get(Run, run_id)
+                if run:
+                    run.validation_status = "failed"
+                    await session2.commit()
+            return
+    async with async_session_maker() as session2:
+        run = await session2.get(Run, run_id)
+        if run:
+            run.validation_status = "completed"
+            await session2.commit()
 
 
 @router.get("", response_model=list[RunOut])
@@ -104,6 +119,27 @@ async def get_run_token_usage(run_id: int, db: AsyncSession = Depends(get_db)):
     if not rows:
         raise HTTPException(404, "Run not found or has no validations")
     return rows[0]
+
+
+@router.post("/{run_id}/validate", response_model=RunOut)
+async def start_validation(
+    run_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Start validation for a completed run. Runs in the background."""
+    run = await db.get(Run, run_id)
+    if not run:
+        raise HTTPException(404, "Run not found")
+    if run.status != "completed":
+        raise HTTPException(400, "Run must be completed before validation can start")
+    if run.validation_status == "running":
+        raise HTTPException(409, "Validation already in progress")
+    run.validation_status = "running"
+    await db.commit()
+    await db.refresh(run)
+    background_tasks.add_task(_run_validation, run_id)
+    return RunOut.model_validate(run)
 
 
 @router.get("/{run_id}", response_model=RunOut)

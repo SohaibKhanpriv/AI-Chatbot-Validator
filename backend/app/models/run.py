@@ -18,6 +18,7 @@ class Run(Base):
     total_queries: Mapped[int] = mapped_column(Integer, default=0)
     processed_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="pending")  # pending | running | completed | failed
+    validation_status: Mapped[str | None] = mapped_column(String(32), nullable=True)  # null | running | completed | failed
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

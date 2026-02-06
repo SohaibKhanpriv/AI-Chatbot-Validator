@@ -2,14 +2,16 @@ import { api } from "@/lib/api";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ExportReportButton from "@/components/ExportReportButton";
+import RunValidationButton from "@/components/RunValidationButton";
 
 export default async function RunReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const runId = parseInt(id, 10);
   if (Number.isNaN(runId)) notFound();
   let report;
+  let run;
   try {
-    report = await api.reports.get(runId);
+    [report, run] = await Promise.all([api.reports.get(runId), api.runs.get(runId)]);
   } catch {
     notFound();
   }
@@ -28,6 +30,7 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
         {report.responses_count > 0 && (
           <ExportReportButton runId={runId} disabled={false} />
         )}
+        <RunValidationButton runId={runId} run={run} />
         <h1 className="text-2xl font-bold text-[var(--neural-primary)]">Run report</h1>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

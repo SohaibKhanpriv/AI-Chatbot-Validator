@@ -39,6 +39,7 @@ class RunOut(BaseModel):
     total_queries: int
     processed_count: int
     status: str
+    validation_status: Optional[str] = None  # null | running | completed | failed
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
