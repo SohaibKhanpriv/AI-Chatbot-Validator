@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -14,6 +14,7 @@ import "reactflow/dist/style.css";
 import { useGraphStore } from "@/state/graphStore";
 import GraphNode from "./GraphNode";
 import BranchLane from "./BranchLane";
+import ViewportSync from "./ViewportSync";
 
 const nodeTypes = { conversationNode: GraphNode };
 
@@ -21,17 +22,24 @@ export default function ConversationGraph() {
   const { nodes: storeNodes, edges: storeEdges } = useGraphStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
+  const [viewportTransform, setViewportTransform] = useState<[number, number, number] | null>(null);
 
   useEffect(() => {
     setNodes(storeNodes);
     setEdges(storeEdges);
   }, [storeNodes, storeEdges, setNodes, setEdges]);
 
+  const handleTransform = useCallback((transform: [number, number, number]) => {
+    setViewportTransform(transform);
+  }, []);
+
   return (
     <div className="w-full h-full min-h-[500px] rounded-xl overflow-hidden bg-[var(--background)]/80 border border-white/10 relative">
-      <div className="absolute inset-0 rounded-xl overflow-hidden">
-        <BranchLane />
-      </div>
+      {viewportTransform && (
+        <div className="absolute inset-0 pointer-events-none z-0 rounded-xl overflow-hidden">
+          <BranchLane transform={viewportTransform} />
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -48,8 +56,10 @@ export default function ConversationGraph() {
           style: { strokeWidth: 2, stroke: "rgba(255,255,255,0.25)" },
         }}
         proOptions={{ hideAttribution: true }}
+        nodeOrigin={[0.5, 0.5]}
         className="conversation-graph"
       >
+        <ViewportSync onTransform={handleTransform} />
         <Background color="rgba(0,229,255,0.06)" gap={24} size={1} />
         <Controls className="!bg-[var(--card-bg)] !border-white/10 !shadow-xl" />
         <MiniMap

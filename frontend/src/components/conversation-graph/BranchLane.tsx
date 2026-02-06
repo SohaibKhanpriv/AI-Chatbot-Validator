@@ -8,11 +8,31 @@ const LANE_WIDTH = 120;
 const LANE_OFFSET_X = 80;
 
 /**
- * Renders Git-style vertical branch lanes behind the graph.
- * Each lane has a soft colored glow based on character usage in that lane.
+ * Flow-to-screen: screenX = flowX * scale + tx
+ * Transform is [tx, ty, scale].
  */
-export default function BranchLane() {
+function flowToScreen(flowX: number, transform: [number, number, number]): number {
+  const [tx, , scale] = transform;
+  return flowX * scale + tx;
+}
+
+function flowWidthToScreen(flowW: number, transform: [number, number, number]): number {
+  const [, , scale] = transform;
+  return flowW * scale;
+}
+
+export type BranchLaneProps = {
+  transform: [number, number, number];
+};
+
+/**
+ * Renders Git-style vertical branch lanes in screen space. Receives viewport
+ * transform from parent (synced from React Flow). Rendered outside ReactFlow
+ * with pointer-events: none so it does not block pan/zoom/drag.
+ */
+export default function BranchLane({ transform }: BranchLaneProps) {
   const { branchLaneMap, characterLaneMap } = useGraphStore();
+
   const laneCount = useMemo(() => {
     const ids = Object.values(branchLaneMap);
     return ids.length ? Math.max(...ids) + 1 : 4;
@@ -29,26 +49,31 @@ export default function BranchLane() {
   }, [characterLaneMap]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
+    <div className="absolute inset-0 overflow-hidden rounded-xl">
       {Array.from({ length: laneCount }).map((_, i) => {
         const color = colors[i % colors.length] ?? "#60a5fa";
-        const x = LANE_OFFSET_X + i * LANE_WIDTH - LANE_WIDTH / 2;
+        const flowCenterX = LANE_OFFSET_X + i * LANE_WIDTH;
+        const screenCenterX = flowToScreen(flowCenterX, transform);
+        const screenWidth = flowWidthToScreen(LANE_WIDTH, transform);
         return (
           <div
             key={i}
-            className="absolute top-0 bottom-0 w-[120px] -translate-x-1/2"
+            className="absolute top-0 bottom-0 -translate-x-1/2"
             style={{
-              left: x,
+              left: screenCenterX,
+              width: Math.max(1, screenWidth),
               background: `linear-gradient(180deg, transparent 0%, ${color}08 20%, ${color}12 50%, ${color}08 80%, transparent 100%)`,
               boxShadow: `inset 0 0 60px ${color}15`,
             }}
           />
         );
       })}
-      {/* Vertical spine line (center of first lane) */}
       <div
         className="absolute top-0 bottom-0 w-px -translate-x-1/2 opacity-30"
-        style={{ left: LANE_OFFSET_X, background: "linear-gradient(180deg, transparent, var(--neural-primary), transparent)" }}
+        style={{
+          left: flowToScreen(LANE_OFFSET_X, transform),
+          background: "linear-gradient(180deg, transparent, var(--neural-primary), transparent)",
+        }}
       />
     </div>
   );
