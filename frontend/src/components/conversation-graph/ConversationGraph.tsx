@@ -36,7 +36,12 @@ export default function ConversationGraph() {
   return (
     <div className="w-full h-full min-h-[500px] rounded-xl overflow-hidden bg-[var(--background)]/80 border border-white/10 relative">
       {viewportTransform && (
-        <div className="absolute inset-0 pointer-events-none z-0 rounded-xl overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none z-0 rounded-xl overflow-hidden"
+          style={{
+            background: "linear-gradient(165deg, rgba(15, 18, 32, 0.92) 0%, rgba(20, 15, 35, 0.88) 50%, rgba(12, 14, 28, 0.92) 100%)",
+          }}
+        >
           <BranchLane transform={viewportTransform} />
         </div>
       )}

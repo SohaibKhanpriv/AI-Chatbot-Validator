@@ -62,8 +62,8 @@ export default function BranchLane({ transform }: BranchLaneProps) {
             style={{
               left: screenCenterX,
               width: Math.max(1, screenWidth),
-              background: `linear-gradient(180deg, transparent 0%, ${color}08 20%, ${color}12 50%, ${color}08 80%, transparent 100%)`,
-              boxShadow: `inset 0 0 60px ${color}15`,
+              background: `linear-gradient(180deg, transparent 0%, ${color}20 15%, ${color}35 50%, ${color}20 85%, transparent 100%)`,
+              boxShadow: `inset 0 0 80px ${color}28`,
             }}
           />
         );
